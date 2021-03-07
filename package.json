@@ -1,0 +1,25 @@
+{
+  "name": "localCheckers",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.21.1",
+    "axios-https-proxy-fix": "^0.17.1",
+    "cheerio": "^1.0.0-rc.5",
+    "http-proxy-agent": "^4.0.1",
+    "https-proxy-agent": "^5.0.0",
+    "prompt-sync": "^4.2.0",
+    "request": "^2.88.2",
+    "scraperapi-sdk": "^1.0.6",
+    "user-agents": "^1.0.574",
+    "utf8": "^3.0.0",
+    "uuid": "^8.3.2"
+  }
+}
