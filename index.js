@@ -1,11 +1,29 @@
 const fs = require('fs');
 const checkers = require('./scripts/main');
 const conf = require('./utils/conf');
+const checkerConf = require('./utils/checkers');
+const signale = require('signale');
+const prompt = require('prompt-sync')();
 
 async function main(){
 
+    console.log('\n    >> Escolha o modo de teste:\n')
+    while (true) {
+        var type = prompt("       Digite '1' para carregar uma lista ou '2' para usar gerador de CPF ou 'q!' para sair: ");
+        if (type == 'q!'){
+            process.exit()
+        }
+        if (type == 1 || type == 2) {
+            break
+        } else {
+            console.log('\n       Entrada inválida!\n')
+        }
+        break
+    }
+    
+    const checkerApi = checkers.auxilio
+
     let results = {
-        numLoaded: 0,
         numTests: 0,
         numErrors: 0,
         numDies: 0,
@@ -14,90 +32,80 @@ async function main(){
         erros: []
     }
 
+    if (type == 1){
+        var cpfs = conf.loader()
+    }
 
-    const checkerApi = checkers.auxilio
-    var combos = conf.loader();
     const outputFile = conf.output();
 
+    while (true){
 
-    try {
-        var checkerNum = parseInt(fs.readFileSync(`./control/testcontrol/auxilio.txt`));
-        combos = combos.slice(checkerNum)
-    } catch {
-        var checkerNum = 0;
-    }
+        if (type == 2) {
+            while (true) {
+                try {
+        
+                    var cpfs = await checkerConf.cpfGen()
+                    break
     
-    results.numLoaded = combos.length
-
-    console.log('\n\n')
-
-    for (i = 0; i < combos.length; i ++) {
-
-        _results = '       RESULTADOS >> '
-        _results += 'carregados: ' + results.numLoaded +  ' | testados: ' + results.numTests
-        _results += ' | erros: ' + results.numErrors + ' | dies: ' + results.numDies
-        _results += ' | lives: ' + results.numLives + ' | RubyCheckers - ' + 'AUX'
-
-        console.log(_results)
-        console.log('\n')
-        var login = await checkerApi(combos[i]);
-
-        if (login.status == 'live') {
-
-            if (login.test.password) {
-                if(login.info) {
-                    const newLine = 'APROVADO >> ' + login.test.user + ' | ' + login.test.password + login.info + '\n'
-                    fs.appendFileSync(outputFile, newLine);
-                } else {
-                    const newLine = 'APROVADO >> ' + login.test.user + ' | ' + login.test.password + '\n'
-                    fs.appendFileSync(outputFile, newLine);
-                }
-            } else {
-                if(login.info) {
-                    const newLine = 'APROVADO >> ' + login.test.user + ' | ' + login.info + '\n'
-                    fs.appendFileSync(outputFile, newLine);
-                } else {
-                    const newLine = 'APROVADO >> ' + login.test.user + '\n'
-                    fs.appendFileSync(outputFile, newLine);
+                } catch {
+                    continue
                 }
             }
-            
-            results.numTests += 1
-            results.numLives += 1
-            checkerNum += 1
-            results.lives.push(login);
+        }
 
-            fs.writeFileSync(
-                `./control/testcontrol/auxilio.txt`,
-                `${results.numTests + checkerNum}`
-            );
+        console.log('\n\n')
+    
+        for (i = 0; i < cpfs.length; i ++) {
 
-        } else if (login.status == 'die') {
-            results.numTests += 1
-            results.numDies += 1
-            checkerNum += 1
+            _results = '       RESULTADOS >> '
+            _results += ' | testados: ' + results.numTests
+            _results += ' | erros: ' + results.numErrors + ' | dies: ' + results.numDies
+            _results += ' | lives: ' + results.numLives + ' | RubyCheckers - ' + 'AUX'
 
-            fs.writeFileSync(
-                `./control/testcontrol/auxilio.txt`,
-                `${checkerNum}`
-            );
-            
-        } else {
-            results.numTests += 1
-            results.numErrors += 1
-            checkerNum += 1
-            results.erros.push(combos[i])
+            try {
+                var login = await checkerApi(cpfs[i]);
 
-            fs.writeFileSync(
-                `./control/testcontrol/auxilio.txt`,
-                `${checkerNum}`
-            );
+            } catch(err) {
+                console.log(err)
+            }
 
-            fs.appendFileSync(
-                `./control/testcontrol/auxilioErrors.txt`,
-                `${login.test.user}|${login.test.password}\n`
-            );
+            if (login.status == 'live') {
 
+                const newLine = 'APROVADO >> ' + login.test.user + ' | ' + login.info + '\n'
+                fs.appendFileSync(outputFile, newLine);
+
+                signale.success('APROVADO >> ' + login.test.user + ' | ' + login.info + '\n')
+                
+                
+                results.numTests += 1
+                results.numLives += 1
+                results.lives.push(login);
+                
+            } else if (login.status == 'die') {
+
+                signale.error('REPROVADO >> ' + login.test.user + ' | ' + login.info + '\n')
+                
+                results.numTests += 1
+                results.numDies += 1
+                              
+            } else {
+
+                signale.warning('ERRO >> ' + login.test.user)
+              
+                results.numTests += 1
+                results.numErrors += 1
+                results.erros.push(combos[i])
+                  
+                fs.appendFileSync(
+                    `./control/testcontrol/auxilioErrors.txt`,
+                    `${login.test.user}\n`
+                );
+    
+            }
+        }
+
+        if (type == 1){
+            break
         }
     }
 
@@ -125,8 +133,7 @@ async function main(){
     }
 
     fs.writeFileSync(
-        `./control/testcontrol/auxilio.txt`, '0');
-
+        `./control/testcontrol/auxilio.txt`, '0');  
     
 }
 

@@ -40,12 +40,36 @@ async function RequesT(metodo, url1, headers1, post = false, cookies = false, pr
    					return status > 200;}
 			}).then(async (res)=>{
 				return {success:true, response: res}
-			}).catch(() =>{
+			}).catch((err) =>{
 				return {success:false, status:'error'}
 			})
 		}
 }
 
+async function cpfGen(){
+
+	while (true) {
+		try {
+
+			const cpfs = []
+
+			const response = await RequesT('post', 'https://www.4devs.com.br/ferramentas_online.php', {
+				'user-agent': UserAgent
+			},
+				'acao=gerar_pessoa&sexo=I&pontuacao=S&idade=0&cep_estado=&txt_qtde=30&cep_cidade='
+			)
+
+			response.response.data.forEach(item => {
+				cpfs.push(item.cpf)
+			})
+
+			return cpfs
+		} catch(err) {
+			continue
+		}
+	}
+
+}
 
 
 function msleep(n) {
@@ -73,4 +97,5 @@ module.exports = {
 	useragent:Agent,
 	req: RequesT,
 	getstr:getStr,
+	cpfGen: cpfGen,
 }
