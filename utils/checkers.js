@@ -51,6 +51,8 @@ async function cpfGen(){
 	while (true) {
 		try {
 
+			console.log('\n\n [ GERANDO CPFS... AGUARDE ]')
+
 			const cpfs = []
 
 			const response = await RequesT('post', 'https://www.4devs.com.br/ferramentas_online.php', {

